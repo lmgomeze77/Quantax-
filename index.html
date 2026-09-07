@@ -53,9 +53,10 @@
     const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
     const gate = document.getElementById('gate'), deck = document.getElementById('deck'), form = document.getElementById('accessForm'), msg = document.getElementById('msg'), btn = document.getElementById('submitBtn');
     const slide = document.getElementById('slide'), counter = document.getElementById('counter'), thumbs = document.getElementById('thumbs');
+    function slidePath(n){ return n === 14 ? '8298D44B-8D61-4AF7-8F0E-7A594176B933.png' : `slide_${String(n).padStart(2,'0')}.jpg`; }
     function showDeck(){ gate.style.display='none'; deck.style.display='block'; setSlide(current); }
-    function setSlide(n){ current = Math.min(total, Math.max(1,n)); slide.src = `slide_${String(current).padStart(2,'0')}.jpg`; slide.alt = `Quantax investor deck slide ${current}`; counter.textContent = `${current} / ${total}`; [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current', i+1===current ? 'true':'false')); }
-    function buildThumbs(){ for(let i=1;i<=total;i++){ const b=document.createElement('button'); b.type='button'; b.className='thumb'; b.setAttribute('aria-label',`Go to slide ${i}`); b.onclick=()=>setSlide(i); const im=document.createElement('img'); im.src=`slide_${String(i).padStart(2,'0')}.jpg`; im.alt=''; b.appendChild(im); thumbs.appendChild(b);} }
+    function setSlide(n){ current = Math.min(total, Math.max(1,n)); slide.src = slidePath(current); slide.alt = `Quantax investor deck slide ${current}`; counter.textContent = `${current} / ${total}`; [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current', i+1===current ? 'true':'false')); }
+    function buildThumbs(){ for(let i=1;i<=total;i++){ const b=document.createElement('button'); b.type='button'; b.className='thumb'; b.setAttribute('aria-label',`Go to slide ${i}`); b.onclick=()=>setSlide(i); const im=document.createElement('img'); im.src=slidePath(i); im.alt=''; b.appendChild(im); thumbs.appendChild(b);} }
     buildThumbs();
     document.getElementById('prev').onclick=()=>setSlide(current-1); document.getElementById('next').onclick=()=>setSlide(current+1);
     document.addEventListener('keydown',e=>{ if(deck.style.display==='block'){ if(e.key==='ArrowRight')setSlide(current+1); if(e.key==='ArrowLeft')setSlide(current-1); }});
