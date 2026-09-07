@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quantax Investor Deck</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--red:#ff2a23;--ink:#242424;--muted:#767676;--line:#e8e8e8;--bg:#f7f7f5;--white:#fff;}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    .gate{min-height:100svh;display:grid;place-items:center;padding:28px;}
+    .gate-card{width:min(520px,100%);background:var(--white);border:1px solid var(--line);padding:38px 34px;box-shadow:0 18px 55px rgba(0,0,0,.07);}
+    .eyebrow{font:600 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:var(--red);text-transform:uppercase;margin:0 0 18px;}
+    h1{font-size:38px;line-height:1.02;margin:0 0 12px;letter-spacing:-.04em}.copy{font-size:16px;line-height:1.55;color:#5a5a5a;margin:0 0 26px;}
+    label{display:block;font-size:13px;font-weight:700;margin-bottom:8px} input{width:100%;height:48px;border:1px solid #d9d9d9;padding:0 14px;font-size:16px;background:white;color:var(--ink);}
+    input:focus{outline:2px solid var(--red);outline-offset:2px} button{height:48px;border:0;background:var(--ink);color:white;padding:0 18px;font-weight:700;cursor:pointer;}
+    button:disabled{opacity:.55;cursor:not-allowed}.row{display:grid;grid-template-columns:1fr auto;gap:10px}.msg{min-height:22px;margin-top:12px;font-size:13px;color:#666}.msg.error{color:#b00020}
+    .deck{display:none;min-height:100svh;padding:22px;background:#efefed}.topbar{height:48px;display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1320px;margin:0 auto 12px;}
+    .brand{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:var(--red);text-transform:uppercase}.controls{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;}
+    .navbtn{width:38px;height:34px;border:1px solid #d8d8d8;background:white;color:#222;padding:0}.stage{max-width:1320px;margin:0 auto;display:grid;place-items:center}.slide-wrap{width:100%;aspect-ratio:16/9;background:white;box-shadow:0 20px 70px rgba(0,0,0,.12);}
+    .slide{display:block;width:100%;height:100%;object-fit:contain;background:white}.thumbs{max-width:1320px;margin:14px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}.thumb{width:92px;min-width:92px;aspect-ratio:16/9;border:2px solid transparent;background:white;padding:0;opacity:.68}.thumb[aria-current="true"]{border-color:var(--red);opacity:1}.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:720px){.deck{padding:10px}.topbar{height:auto;align-items:flex-start}.controls{flex-wrap:wrap;justify-content:flex-end}.thumb{width:70px;min-width:70px}.gate-card{padding:30px 24px}.row{grid-template-columns:1fr}h1{font-size:32px}}
+  </style>
+</head>
+<body>
+  <main id="gate" class="gate" aria-labelledby="gate-title">
+    <section class="gate-card">
+      <p class="eyebrow">Quantax · Investor Deck</p>
+      <h1 id="gate-title">Easy Business Management, Smarter Tax Savings</h1>
+      <p class="copy">Please provide your email to access the deck.</p>
+      <form id="accessForm" novalidate>
+        <label for="email">Email</label>
+        <div class="row"><input id="email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required /><button id="submitBtn" type="submit">Access</button></div>
+        <div id="msg" class="msg" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+
+  <main id="deck" class="deck" aria-label="Quantax investor deck">
+    <div class="topbar">
+      <div class="brand">Quantax · Investor Deck</div>
+      <div class="controls" aria-label="Slide controls">
+        <button class="navbtn" id="prev" type="button" aria-label="Previous slide">‹</button>
+        <span id="counter">1 / 25</span>
+        <button class="navbtn" id="next" type="button" aria-label="Next slide">›</button>
+      </div>
+    </div>
+    <section class="stage"><div class="slide-wrap"><img id="slide" class="slide" src="slides/slide_01.jpg" alt="Quantax investor deck slide 1" /></div></section>
+    <nav id="thumbs" class="thumbs" aria-label="Slide thumbnails"></nav>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const LEADS_TABLE = 'deck_access_leads';
+    const DECK_ID = 'quantax_investor_deck';
+    const total = 25;
+    let current = 1;
+    const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR_');
+    const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    const gate = document.getElementById('gate'), deck = document.getElementById('deck'), form = document.getElementById('accessForm'), msg = document.getElementById('msg'), btn = document.getElementById('submitBtn');
+    const slide = document.getElementById('slide'), counter = document.getElementById('counter'), thumbs = document.getElementById('thumbs');
+
+    function showDeck(){ gate.style.display='none'; deck.style.display='block'; setSlide(current); }
+    function setSlide(n){ current = Math.min(total, Math.max(1,n)); slide.src = `slides/slide_${String(current).padStart(2,'0')}.jpg`; slide.alt = `Quantax investor deck slide ${current}`; counter.textContent = `${current} / ${total}`; [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current', i+1===current ? 'true':'false')); }
+    function buildThumbs(){ for(let i=1;i<=total;i++){ const b=document.createElement('button'); b.type='button'; b.className='thumb'; b.setAttribute('aria-label',`Go to slide ${i}`); b.onclick=()=>setSlide(i); const im=document.createElement('img'); im.src=`slides/slide_${String(i).padStart(2,'0')}.jpg`; im.alt=''; b.appendChild(im); thumbs.appendChild(b);} }
+    buildThumbs();
+    document.getElementById('prev').onclick=()=>setSlide(current-1); document.getElementById('next').onclick=()=>setSlide(current+1);
+    document.addEventListener('keydown',e=>{ if(deck.style.display==='block'){ if(e.key==='ArrowRight')setSlide(current+1); if(e.key==='ArrowLeft')setSlide(current-1); }});
+    if(localStorage.getItem('quantaxDeckAccess')==='yes') showDeck();
+    form.addEventListener('submit', async (e)=>{ e.preventDefault(); msg.className='msg'; msg.textContent=''; const email=form.email.value.trim().toLowerCase(); if(!form.checkValidity()){ msg.textContent='Please enter a valid email.'; msg.className='msg error'; return; } if(!configured){ msg.textContent='Supabase is not configured yet.'; msg.className='msg error'; return; } btn.disabled=true; btn.textContent='Saving...'; const { error } = await sb.from(LEADS_TABLE).insert([{ email, deck_id: DECK_ID, source: 'netlify_public_deck', user_agent: navigator.userAgent }]); btn.disabled=false; btn.textContent='Access'; if(error){ msg.textContent='Access could not be registered. Please try again.'; msg.className='msg error'; return; } localStorage.setItem('quantaxDeckAccess','yes'); showDeck(); });
+  </script>
+</body>
+</html>
