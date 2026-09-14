@@ -14,7 +14,8 @@
     label{display:block;font-size:13px;font-weight:700;margin-bottom:8px}input{width:100%;height:48px;border:1px solid #d9d9d9;padding:0 14px;font-size:16px;background:#fff;color:var(--ink)}input:focus{outline:2px solid var(--red);outline-offset:2px}button{height:48px;border:0;background:var(--ink);color:#fff;padding:0 18px;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.row{display:grid;grid-template-columns:1fr auto;gap:10px}.msg{min-height:22px;margin-top:12px;font-size:13px;color:#666}.msg.error{color:#b00020}
     .deck{display:none;min-height:100svh;padding:22px;background:#efefed}.topbar{height:48px;display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1320px;margin:0 auto 12px}.brand{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:var(--red);text-transform:uppercase}.controls{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}.navbtn{width:38px;height:34px;border:1px solid #d8d8d8;background:#fff;color:#222;padding:0}
     .stage{max-width:1320px;margin:0 auto;display:grid;place-items:center}.slide-wrap{width:100%;aspect-ratio:16/9;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.12)}.slide{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
-    .thumbs{max-width:1320px;margin:14px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}.thumb{width:92px;min-width:92px;aspect-ratio:16/9;border:2px solid transparent;background:#fff;padding:0;opacity:.68}.thumb[aria-current="true"]{border-color:var(--red);opacity:1}.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .thumbs{max-width:1320px;margin:14px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}.thumb{width:92px;min-width:92px;aspect-ratio:16/9;border:2px solid transparent;background:#fff;padding:0;opacity:.68}.thumb[aria-current="true"]{border-color:var(--red);opacity:1}.thumb img{width:100%;height:100%;object-fit:cover;display:block}.thumb.locked{display:grid;place-items:center;background:#f1f1ef;color:#8a8a8a;font-size:16px}
+    .notice{display:none;width:100%;height:100%;place-items:center;text-align:center;padding:0 12%;background:#fbfaf6;color:#5a5a5a;font-size:15px;line-height:1.5}
     @media(max-width:720px){.deck{padding:10px}.topbar{height:auto;align-items:flex-start}.controls{flex-wrap:wrap;justify-content:flex-end}.thumb{width:70px;min-width:70px}.gate-card{padding:30px 24px}.row{grid-template-columns:1fr}h1{font-size:32px}}
   </style>
 </head>
@@ -36,6 +37,7 @@
     <div class="topbar"><div class="brand">Quantax · Investor Deck V2</div><div class="controls"><button class="navbtn" id="prev" type="button">‹</button><span id="counter">1 / 8</span><button class="navbtn" id="next" type="button">›</button></div></div>
     <section class="stage"><div class="slide-wrap">
       <img id="slide" class="slide" src="../slide_01.png" alt="Quantax investor deck slide 1">
+      <p id="notice" class="notice" role="status"></p>
     </div></section>
     <nav id="thumbs" class="thumbs" aria-label="Slide thumbnails"></nav>
   </main>
@@ -44,15 +46,57 @@
     const SUPABASE_URL='https://jpecmcplicwhmtfnbpdi.supabase.co';
     const SUPABASE_ANON_KEY='sb_publishable_i4NLV2qeu-QbhdzqHR9moQ_NvQC5T1O';
     const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const total=8; let current=1;
-    const gate=document.getElementById('gate'),deck=document.getElementById('deck'),form=document.getElementById('accessForm'),msg=document.getElementById('msg'),btn=document.getElementById('submitBtn'),slide=document.getElementById('slide'),counter=document.getElementById('counter'),thumbs=document.getElementById('thumbs');
+    const total=8, PROTECTED_SLIDE=8, SLIDE_ENDPOINT='/api/slide8';
+    const ACCESS_KEY='quantaxDeckV2Access', EMAIL_KEY='quantaxDeckV2Email';
+    const DENIED_TEXT='This email is not authorized to view the financing terms.';
+    let current=1, protectedUrl=null, protectedPending=null, protectedDenied=false;
+    const gate=document.getElementById('gate'),deck=document.getElementById('deck'),form=document.getElementById('accessForm'),msg=document.getElementById('msg'),btn=document.getElementById('submitBtn'),slide=document.getElementById('slide'),notice=document.getElementById('notice'),counter=document.getElementById('counter'),thumbs=document.getElementById('thumbs');
     function imagePath(n){ return `../slide_${String(n).padStart(2,'0')}.png`; }
+
+    // Slide 8 carries the financing terms. It is not a public static asset: the
+    // function returns it only for an allowlisted email.
+    function fetchProtectedSlide(){
+      if(protectedUrl) return Promise.resolve(protectedUrl);
+      if(protectedPending) return protectedPending;
+      protectedPending=(async()=>{
+        const res=await fetch(SLIDE_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:sessionStorage.getItem(EMAIL_KEY)||''})});
+        if(res.status===403) protectedDenied=true;
+        if(!res.ok) throw new Error(String(res.status));
+        protectedUrl=URL.createObjectURL(await res.blob());
+        const thumb=thumbs.children[PROTECTED_SLIDE-1];
+        if(thumb){thumb.classList.remove('locked');thumb.textContent='';const im=document.createElement('img');im.src=protectedUrl;im.alt='';thumb.appendChild(im)}
+        return protectedUrl;
+      })();
+      protectedPending.catch(()=>{protectedPending=null});
+      return protectedPending;
+    }
+
+    function showImage(src,n){slide.src=src;slide.alt=`Quantax investor deck slide ${n}`;slide.style.display='block';notice.style.display='none'}
+    function showNotice(text){slide.style.display='none';notice.textContent=text;notice.style.display='grid'}
+
+    async function setSlide(n){
+      current=Math.min(total,Math.max(1,n));
+      counter.textContent=`${current} / ${total}`;
+      [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current',i+1===current?'true':'false'));
+      if(current!==PROTECTED_SLIDE){ showImage(imagePath(current),current); return; }
+      if(protectedUrl){ showImage(protectedUrl,current); return; }
+      if(protectedDenied){ showNotice(DENIED_TEXT); return; }
+      const target=current;
+      showNotice('Loading…');
+      try{
+        const url=await fetchProtectedSlide();
+        if(current===target) showImage(url,target);
+      }catch(err){
+        if(current!==target) return;
+        showNotice(protectedDenied ? DENIED_TEXT : 'The financing terms could not be loaded. Please try again.');
+      }
+    }
+
+    function buildThumbs(){for(let i=1;i<=total;i++){const b=document.createElement('button');b.type='button';b.className='thumb';b.setAttribute('aria-label',`Go to slide ${i}`);b.onclick=()=>setSlide(i);if(i===PROTECTED_SLIDE){b.classList.add('locked');b.textContent='🔒'}else{const im=document.createElement('img');im.src=imagePath(i);im.alt='';b.appendChild(im)}thumbs.appendChild(b)}}
     function showDeck(){gate.style.display='none';deck.style.display='block';setSlide(current)}
-    function setSlide(n){current=Math.min(total,Math.max(1,n));slide.src=imagePath(current);slide.alt=`Quantax investor deck slide ${current}`;counter.textContent=`${current} / ${total}`;[...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current',i+1===current?'true':'false'))}
-    function buildThumbs(){for(let i=1;i<=total;i++){const b=document.createElement('button');b.type='button';b.className='thumb';b.setAttribute('aria-label',`Go to slide ${i}`);b.onclick=()=>setSlide(i);const im=document.createElement('img');im.src=imagePath(i);im.alt='';b.appendChild(im);thumbs.appendChild(b)}}
     buildThumbs();document.getElementById('prev').onclick=()=>setSlide(current-1);document.getElementById('next').onclick=()=>setSlide(current+1);document.addEventListener('keydown',e=>{if(deck.style.display==='block'){if(e.key==='ArrowRight')setSlide(current+1);if(e.key==='ArrowLeft')setSlide(current-1)}});
-    if(sessionStorage.getItem('quantaxDeckV2Access')==='yes')showDeck();
-    form.addEventListener('submit',async e=>{e.preventDefault();msg.className='msg';msg.textContent='';const email=form.email.value.trim().toLowerCase();if(!form.checkValidity()){msg.textContent='Please enter a valid email.';msg.className='msg error';return;}btn.disabled=true;btn.textContent='Checking...';const {data,error}=await sb.rpc('authorize_quantax_v2',{p_email:email,p_user_agent:navigator.userAgent});btn.disabled=false;btn.textContent='Access';if(error){msg.textContent='Access service is not configured yet.';msg.className='msg error';return;}if(data!==true){msg.textContent='This email is not authorized for the valuation deck.';msg.className='msg error';return;}sessionStorage.setItem('quantaxDeckV2Access','yes');showDeck();});
+    if(sessionStorage.getItem(ACCESS_KEY)==='yes')showDeck();
+    form.addEventListener('submit',async e=>{e.preventDefault();msg.className='msg';msg.textContent='';const email=form.email.value.trim().toLowerCase();if(!form.checkValidity()){msg.textContent='Please enter a valid email.';msg.className='msg error';return;}btn.disabled=true;btn.textContent='Checking...';const {data,error}=await sb.rpc('authorize_quantax_v2',{p_email:email,p_user_agent:navigator.userAgent});btn.disabled=false;btn.textContent='Access';if(error){msg.textContent='Access service is not configured yet.';msg.className='msg error';return;}if(data!==true){msg.textContent='This email is not authorized for the valuation deck.';msg.className='msg error';return;}sessionStorage.setItem(ACCESS_KEY,'yes');sessionStorage.setItem(EMAIL_KEY,email);showDeck();});
   </script>
 </body>
 </html>
