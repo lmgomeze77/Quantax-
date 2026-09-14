@@ -20,7 +20,6 @@
     .brand{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:var(--red);text-transform:uppercase}.controls{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;}
     .navbtn{width:38px;height:34px;border:1px solid #d8d8d8;background:white;color:#222;padding:0}.stage{max-width:1320px;margin:0 auto;display:grid;place-items:center}.slide-wrap{width:100%;aspect-ratio:16/9;background:white;box-shadow:0 20px 70px rgba(0,0,0,.12);}
     .slide{display:block;width:100%;height:100%;object-fit:contain;background:white}.thumbs{max-width:1320px;margin:14px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}.thumb{width:92px;min-width:92px;aspect-ratio:16/9;border:2px solid transparent;background:white;padding:0;opacity:.68}.thumb[aria-current="true"]{border-color:var(--red);opacity:1}.thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     @media(max-width:720px){.deck{padding:10px}.topbar{height:auto;align-items:flex-start}.controls{flex-wrap:wrap;justify-content:flex-end}.thumb{width:70px;min-width:70px}.gate-card{padding:30px 24px}.row{grid-template-columns:1fr}h1{font-size:32px}}
   </style>
 </head>
@@ -38,8 +37,8 @@
     </section>
   </main>
   <main id="deck" class="deck" aria-label="Quantax investor deck">
-    <div class="topbar"><div class="brand">Quantax · Investor Deck</div><div class="controls" aria-label="Slide controls"><button class="navbtn" id="prev" type="button" aria-label="Previous slide">‹</button><span id="counter">1 / 25</span><button class="navbtn" id="next" type="button" aria-label="Next slide">›</button></div></div>
-    <section class="stage"><div class="slide-wrap"><img id="slide" class="slide" src="slide_01.jpg" alt="Quantax investor deck slide 1" /></div></section>
+    <div class="topbar"><div class="brand">Quantax · Investor Deck</div><div class="controls" aria-label="Slide controls"><button class="navbtn" id="prev" type="button" aria-label="Previous slide">‹</button><span id="counter">1 / 8</span><button class="navbtn" id="next" type="button" aria-label="Next slide">›</button></div></div>
+    <section class="stage"><div class="slide-wrap"><img id="slide" class="slide" src="slide_01.png" alt="Quantax investor deck slide 1" /></div></section>
     <nav id="thumbs" class="thumbs" aria-label="Slide thumbnails"></nav>
   </main>
   <script>
@@ -47,13 +46,13 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_i4NLV2qeu-QbhdzqHR9moQ_NvQC5T1O';
     const LEADS_TABLE = 'deck_access_leads';
     const DECK_ID = 'quantax_investor_deck';
-    const total = 25;
+    const total = 8;
     let current = 1;
     const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR_');
     const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
     const gate = document.getElementById('gate'), deck = document.getElementById('deck'), form = document.getElementById('accessForm'), msg = document.getElementById('msg'), btn = document.getElementById('submitBtn');
     const slide = document.getElementById('slide'), counter = document.getElementById('counter'), thumbs = document.getElementById('thumbs');
-    function slidePath(n){ return n === 14 ? 'slide_14.png.PNG' : `slide_${String(n).padStart(2,'0')}.jpg`; }
+    function slidePath(n){ return `slide_${String(n).padStart(2,'0')}.png`; }
     function showDeck(){ gate.style.display='none'; deck.style.display='block'; setSlide(current); }
     function setSlide(n){ current = Math.min(total, Math.max(1,n)); slide.src = slidePath(current); slide.alt = `Quantax investor deck slide ${current}`; counter.textContent = `${current} / ${total}`; [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current', i+1===current ? 'true':'false')); }
     function buildThumbs(){ for(let i=1;i<=total;i++){ const b=document.createElement('button'); b.type='button'; b.className='thumb'; b.setAttribute('aria-label',`Go to slide ${i}`); b.onclick=()=>setSlide(i); const im=document.createElement('img'); im.src=slidePath(i); im.alt=''; b.appendChild(im); thumbs.appendChild(b);} }
