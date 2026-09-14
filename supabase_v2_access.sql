@@ -45,6 +45,28 @@ $$;
 revoke all on function public.authorize_quantax_v2(text, text) from public;
 grant execute on function public.authorize_quantax_v2(text, text) to anon;
 
+-- Read-only allowlist check used by the Netlify function that serves the
+-- protected round slide. Unlike authorize_quantax_v2 it records no lead, so it
+-- can run on every image request. Granted to service_role only: the browser
+-- never calls it, which keeps the allowlist un-enumerable from the client.
+create or replace function public.is_quantax_v2_allowed(p_email text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.deck_v2_allowlist
+    where lower(email) = lower(trim(p_email))
+      and active = true
+  );
+$$;
+
+revoke all on function public.is_quantax_v2_allowed(text) from public, anon, authenticated;
+grant execute on function public.is_quantax_v2_allowed(text) to service_role;
+
 -- Example: authorize a specific investor email
 -- insert into public.deck_v2_allowlist (email, note)
 -- values ('investor@example.com', 'Investor name / firm')

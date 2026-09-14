@@ -38,8 +38,8 @@
     </section>
   </main>
   <main id="deck" class="deck" aria-label="Quantax investor deck">
-    <div class="topbar"><div class="brand">Quantax · Investor Deck</div><div class="controls" aria-label="Slide controls"><button class="navbtn" id="prev" type="button" aria-label="Previous slide">‹</button><span id="counter">1 / 25</span><button class="navbtn" id="next" type="button" aria-label="Next slide">›</button></div></div>
-    <section class="stage"><div class="slide-wrap"><img id="slide" class="slide" src="slide_01.jpg" alt="Quantax investor deck slide 1" /></div></section>
+    <div class="topbar"><div class="brand">Quantax · Investor Deck</div><div class="controls" aria-label="Slide controls"><button class="navbtn" id="prev" type="button" aria-label="Previous slide">‹</button><span id="counter">1 / 7</span><button class="navbtn" id="next" type="button" aria-label="Next slide">›</button></div></div>
+    <section class="stage"><div class="slide-wrap"><img id="slide" class="slide" src="slide_01.png" alt="Quantax investor deck slide 1" /></div></section>
     <nav id="thumbs" class="thumbs" aria-label="Slide thumbnails"></nav>
   </main>
   <script>
@@ -47,13 +47,13 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_i4NLV2qeu-QbhdzqHR9moQ_NvQC5T1O';
     const LEADS_TABLE = 'deck_access_leads';
     const DECK_ID = 'quantax_investor_deck';
-    const total = 25;
+    const total = 7;
     let current = 1;
     const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR_');
     const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
     const gate = document.getElementById('gate'), deck = document.getElementById('deck'), form = document.getElementById('accessForm'), msg = document.getElementById('msg'), btn = document.getElementById('submitBtn');
     const slide = document.getElementById('slide'), counter = document.getElementById('counter'), thumbs = document.getElementById('thumbs');
-    function slidePath(n){ return n === 14 ? 'slide_14.png.PNG' : `slide_${String(n).padStart(2,'0')}.jpg`; }
+    function slidePath(n){ return `slide_${String(n).padStart(2,'0')}.png`; }
     function showDeck(){ gate.style.display='none'; deck.style.display='block'; setSlide(current); }
     function setSlide(n){ current = Math.min(total, Math.max(1,n)); slide.src = slidePath(current); slide.alt = `Quantax investor deck slide ${current}`; counter.textContent = `${current} / ${total}`; [...thumbs.children].forEach((b,i)=>b.setAttribute('aria-current', i+1===current ? 'true':'false')); }
     function buildThumbs(){ for(let i=1;i<=total;i++){ const b=document.createElement('button'); b.type='button'; b.className='thumb'; b.setAttribute('aria-label',`Go to slide ${i}`); b.onclick=()=>setSlide(i); const im=document.createElement('img'); im.src=slidePath(i); im.alt=''; b.appendChild(im); thumbs.appendChild(b);} }
